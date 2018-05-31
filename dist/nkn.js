@@ -26,7 +26,6 @@ function Client(key, identifier, options = {}) {
 
   this.key = key;
   this.identifier = identifier;
-  this.pubkey = pubkey;
   this.addr = addr;
   this.eventListeners = {};
 
