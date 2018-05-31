@@ -30,5 +30,10 @@
     "isomorphic-fetch": "^2.2.1",
     "isomorphic-ws": "^4.0.1",
     "ws": "^5.2.0"
+  },
+  "devDependencies": {
+    "grunt": "^1.0.2",
+    "grunt-browserify": "^5.3.0",
+    "grunt-contrib-uglify-es": "^3.3.0"
   }
 }
