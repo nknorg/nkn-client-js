@@ -159,7 +159,7 @@ require('isomorphic-fetch');
 
 module.exports = rpcCall;
 
-async function rpcCall(addr, method, params) {
+async function rpcCall(addr, method, params = []) {
   let response = await fetch(addr, {
     method: 'POST',
     body: JSON.stringify({
