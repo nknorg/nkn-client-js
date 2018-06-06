@@ -4,10 +4,13 @@ JavaScript implementation of NKN client.
 
 Send and receive data between any NKN clients without setting up a server.
 
-NOTE: This is a **client** version of the NKN protocol, which can send and
+Note: This is a **client** version of the NKN protocol, which can send and
 receive data but **not** relay data (mining). For **node** implementation which
 can mine NKN token by relaying data, please refer to
 [nkn](https://github.com/nknorg/nkn/).
+
+**Note: This repository is in the early development stage and may not have all
+functions working properly. It should be used only for testing now.**
 
 ## Usage
 
