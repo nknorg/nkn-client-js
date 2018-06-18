@@ -89,7 +89,7 @@ Client.prototype.send = function (dest, payload) {
   }));
 };
 
-},{"./const":2,"./rpc":6,"isomorphic-ws":42}],2:[function(require,module,exports){
+},{"./const":2,"./rpc":6,"isomorphic-ws":43}],2:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -154,8 +154,8 @@ function nkn(options = {}) {
 },{"./client":1,"./const":2,"./crypto":3}],6:[function(require,module,exports){
 'use strict';
 
-require('es6-promise').polyfill();
-require('isomorphic-fetch');
+require('es6-promise/auto');
+require('fetch-everywhere');
 
 module.exports = rpcCall;
 
@@ -172,7 +172,7 @@ async function rpcCall(addr, method, params = []) {
   return data;
 }
 
-},{"es6-promise":26,"isomorphic-fetch":41}],7:[function(require,module,exports){
+},{"es6-promise/auto":26,"fetch-everywhere":28}],7:[function(require,module,exports){
 (function (module, exports) {
   'use strict';
 
@@ -4497,7 +4497,7 @@ Point.prototype.eqXToP = function eqXToP(x) {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":10,"../curve":13,"bn.js":7,"inherits":40}],13:[function(require,module,exports){
+},{"../../elliptic":10,"../curve":13,"bn.js":7,"inherits":42}],13:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -4689,7 +4689,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../../elliptic":10,"../curve":13,"bn.js":7,"inherits":40}],15:[function(require,module,exports){
+},{"../../elliptic":10,"../curve":13,"bn.js":7,"inherits":42}],15:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -5629,7 +5629,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":10,"../curve":13,"bn.js":7,"inherits":40}],16:[function(require,module,exports){
+},{"../../elliptic":10,"../curve":13,"bn.js":7,"inherits":42}],16:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -5836,7 +5836,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":10,"./precomputed/secp256k1":23,"hash.js":27}],17:[function(require,module,exports){
+},{"../elliptic":10,"./precomputed/secp256k1":23,"hash.js":29}],17:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -6078,7 +6078,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":10,"./key":18,"./signature":19,"bn.js":7,"hmac-drbg":39}],18:[function(require,module,exports){
+},{"../../elliptic":10,"./key":18,"./signature":19,"bn.js":7,"hmac-drbg":41}],18:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -6456,7 +6456,7 @@ EDDSA.prototype.isPoint = function isPoint(val) {
   return val instanceof this.pointClass;
 };
 
-},{"../../elliptic":10,"./key":21,"./signature":22,"hash.js":27}],21:[function(require,module,exports){
+},{"../../elliptic":10,"./key":21,"./signature":22,"hash.js":29}],21:[function(require,module,exports){
 'use strict';
 
 var elliptic = require('../../elliptic');
@@ -7526,7 +7526,7 @@ function intFromLE(bytes) {
 utils.intFromLE = intFromLE;
 
 
-},{"bn.js":7,"minimalistic-assert":43,"minimalistic-crypto-utils":44}],25:[function(require,module,exports){
+},{"bn.js":7,"minimalistic-assert":44,"minimalistic-crypto-utils":45}],25:[function(require,module,exports){
 module.exports={
   "name": "elliptic",
   "version": "6.4.0",
@@ -7587,6 +7587,12 @@ module.exports={
 }
 
 },{}],26:[function(require,module,exports){
+// This file can be required in Browserify and Node.js for automatic polyfill
+// To use it:  require('es6-promise/auto');
+'use strict';
+module.exports = require('./').polyfill();
+
+},{"./":27}],27:[function(require,module,exports){
 (function (process,global){
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
@@ -8769,7 +8775,16 @@ return Promise$1;
 
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":45}],27:[function(require,module,exports){
+},{"_process":46}],28:[function(require,module,exports){
+// the whatwg-fetch polyfill installs the fetch() function
+// on the global object (window or self)
+//
+// Return that as the export for use in Webpack, Browserify etc.
+require('whatwg-fetch');
+var globalObj = typeof self !== 'undefined' && self || this;
+module.exports = globalObj.fetch.bind(globalObj);
+
+},{"whatwg-fetch":47}],29:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -8786,7 +8801,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":28,"./hash/hmac":29,"./hash/ripemd":30,"./hash/sha":31,"./hash/utils":38}],28:[function(require,module,exports){
+},{"./hash/common":30,"./hash/hmac":31,"./hash/ripemd":32,"./hash/sha":33,"./hash/utils":40}],30:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -8880,7 +8895,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"./utils":38,"minimalistic-assert":43}],29:[function(require,module,exports){
+},{"./utils":40,"minimalistic-assert":44}],31:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -8929,7 +8944,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"./utils":38,"minimalistic-assert":43}],30:[function(require,module,exports){
+},{"./utils":40,"minimalistic-assert":44}],32:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -9077,7 +9092,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"./common":28,"./utils":38}],31:[function(require,module,exports){
+},{"./common":30,"./utils":40}],33:[function(require,module,exports){
 'use strict';
 
 exports.sha1 = require('./sha/1');
@@ -9086,7 +9101,7 @@ exports.sha256 = require('./sha/256');
 exports.sha384 = require('./sha/384');
 exports.sha512 = require('./sha/512');
 
-},{"./sha/1":32,"./sha/224":33,"./sha/256":34,"./sha/384":35,"./sha/512":36}],32:[function(require,module,exports){
+},{"./sha/1":34,"./sha/224":35,"./sha/256":36,"./sha/384":37,"./sha/512":38}],34:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -9162,7 +9177,7 @@ SHA1.prototype._digest = function digest(enc) {
     return utils.split32(this.h, 'big');
 };
 
-},{"../common":28,"../utils":38,"./common":37}],33:[function(require,module,exports){
+},{"../common":30,"../utils":40,"./common":39}],35:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -9194,7 +9209,7 @@ SHA224.prototype._digest = function digest(enc) {
 };
 
 
-},{"../utils":38,"./256":34}],34:[function(require,module,exports){
+},{"../utils":40,"./256":36}],36:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -9301,7 +9316,7 @@ SHA256.prototype._digest = function digest(enc) {
     return utils.split32(this.h, 'big');
 };
 
-},{"../common":28,"../utils":38,"./common":37,"minimalistic-assert":43}],35:[function(require,module,exports){
+},{"../common":30,"../utils":40,"./common":39,"minimalistic-assert":44}],37:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -9338,7 +9353,7 @@ SHA384.prototype._digest = function digest(enc) {
     return utils.split32(this.h.slice(0, 12), 'big');
 };
 
-},{"../utils":38,"./512":36}],36:[function(require,module,exports){
+},{"../utils":40,"./512":38}],38:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -9670,7 +9685,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../common":28,"../utils":38,"minimalistic-assert":43}],37:[function(require,module,exports){
+},{"../common":30,"../utils":40,"minimalistic-assert":44}],39:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -9721,7 +9736,7 @@ function g1_256(x) {
 }
 exports.g1_256 = g1_256;
 
-},{"../utils":38}],38:[function(require,module,exports){
+},{"../utils":40}],40:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -9976,7 +9991,7 @@ function shr64_lo(ah, al, num) {
 }
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":40,"minimalistic-assert":43}],39:[function(require,module,exports){
+},{"inherits":42,"minimalistic-assert":44}],41:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -10091,7 +10106,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"hash.js":27,"minimalistic-assert":43,"minimalistic-crypto-utils":44}],40:[function(require,module,exports){
+},{"hash.js":29,"minimalistic-assert":44,"minimalistic-crypto-utils":45}],42:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -10116,15 +10131,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],41:[function(require,module,exports){
-// the whatwg-fetch polyfill installs the fetch() function
-// on the global object (window or self)
-//
-// Return that as the export for use in Webpack, Browserify etc.
-require('whatwg-fetch');
-module.exports = self.fetch.bind(self);
-
-},{"whatwg-fetch":46}],42:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 (function (global){
 // https://github.com/maxogden/websocket-stream/blob/48dc3ddf943e5ada668c31ccd94e9186f02fafbd/ws-fallback.js
 
@@ -10145,7 +10152,7 @@ if (typeof WebSocket !== 'undefined') {
 module.exports = ws
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],43:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -10158,7 +10165,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -10218,7 +10225,7 @@ utils.encode = function encode(arr, enc) {
     return arr;
 };
 
-},{}],45:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -10404,7 +10411,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 (function(self) {
   'use strict';
 
