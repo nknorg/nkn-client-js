@@ -26,25 +26,40 @@ function Client(key, identifier, options = {}) {
 
   this.key = key;
   this.identifier = identifier;
+  this.options = options;
   this.addr = addr;
   this.eventListeners = {};
   this.sigChainBlockHash = null;
+  this.shouldClose = false;
+  this.reconnectInterval = options.reconnectIntervalMin;
 
-  rpcCall(options.rpcServerAddr, 'getwsaddr', { address: addr }).then(res => {
+  this.connect();
+};
+
+Client.prototype.connect = function () {
+  rpcCall(
+    this.options.rpcServerAddr,
+    'getwsaddr',
+    { address: this.addr },
+  ).then(res => {
     const ws = new WebSocket('ws://' + res.result);
     this.ws = ws;
 
     ws.onopen = () => {
       ws.send(JSON.stringify({
         Action: 'setClient',
-        Addr: addr,
+        Addr: this.addr,
       }));
+      this.reconnectInterval = this.options.reconnectIntervalMin;
     };
 
     ws.onmessage = (event) => {
       let msg = JSON.parse(event.data);
       if (msg.Error !== undefined && msg.Error !== consts.errCodes.success) {
         console.error(msg);
+        if (msg.Action === 'setClient') {
+          this.ws.close();
+        }
         return;
       }
       switch (msg.Action) {
@@ -67,10 +82,27 @@ function Client(key, identifier, options = {}) {
           console.warn('Unknown msg type:', msg.Action);
       }
     };
+
+    ws.onclose = () => {
+      if (!this.shouldClose) {
+        console.log('WebSocket unexpectedly closed.');
+        this.reconnect();
+      }
+    };
   }).catch(err => {
     console.error(err);
+    this.reconnect();
   });
-}
+};
+
+Client.prototype.reconnect = function () {
+  console.log('Reconnecting in ' + this.reconnectInterval/1000 + 's...');
+  setTimeout(() => this.connect(), this.reconnectInterval);
+  this.reconnectInterval *= 2;
+  if (this.reconnectInterval > this.options.reconnectIntervalMax) {
+    this.reconnectInterval = this.options.reconnectIntervalMax;
+  }
+};
 
 Client.prototype.on = function (event, func) {
   if (this.eventListeners[event]) {
@@ -78,7 +110,7 @@ Client.prototype.on = function (event, func) {
   } else {
     this.eventListeners[event] = [func];
   }
-}
+};
 
 Client.prototype.send = function (dest, payload) {
   this.ws.send(JSON.stringify({
@@ -96,6 +128,8 @@ module.exports = {
   errCodes: {
     success: 0,
   },
+  reconnectIntervalMin: 1000,
+  reconnectIntervalMax: 64000,
   seedRpcServerAddr: 'http://node00001.nkn.org:30003',
 };
 
@@ -146,6 +180,8 @@ function nkn(options = {}) {
     privateKey: options.privateKey,
   });
   let client = Client(key, options.identifier, {
+    reconnectIntervalMin: options.reconnectIntervalMin || consts.reconnectIntervalMin,
+    reconnectIntervalMax: options.reconnectIntervalMax || consts.reconnectIntervalMax,
     rpcServerAddr: options.seedRpcServerAddr || consts.seedRpcServerAddr,
   });
   return client;
