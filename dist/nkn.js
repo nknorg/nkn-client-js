@@ -30,7 +30,7 @@ function Client(key, identifier, options = {}) {
   this.eventListeners = {};
   this.sigChainBlockHash = null;
 
-  rpcCall(options.rpcServerAddr, 'getwsaddr', [addr]).then(res => {
+  rpcCall(options.rpcServerAddr, 'getwsaddr', { address: addr }).then(res => {
     const ws = new WebSocket('ws://' + res.result);
     this.ws = ws;
 
@@ -159,7 +159,7 @@ require('fetch-everywhere');
 
 module.exports = rpcCall;
 
-async function rpcCall(addr, method, params = []) {
+async function rpcCall(addr, method, params = {}) {
   let response = await fetch(addr, {
     method: 'POST',
     body: JSON.stringify({
