@@ -1,3 +1,5 @@
+[![CircleCI Status](https://circleci.com/gh/nknorg/nkn-client-js.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/nknorg/nkn-client-js)
+
 # nkn-client-js
 
 JavaScript implementation of NKN client.
