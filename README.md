@@ -16,8 +16,14 @@ functions working properly. It should be used only for testing now.**
 
 For npm:
 
+```shell
+npm install nkn-client
+```
+
+And then in your code:
+
 ```javascript
-const nkn = require('./lib/nkn');
+const nkn = require('nkn-client');
 ```
 
 For browser, use `dist/nkn.js` or `dist/nkn.min.js`.
