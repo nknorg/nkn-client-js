@@ -121,6 +121,11 @@ Client.prototype.send = function (dest, payload) {
   }));
 };
 
+Client.prototype.close = function () {
+  this.shouldClose = true;
+  this.ws.close();
+};
+
 },{"./const":2,"./rpc":6,"isomorphic-ws":43}],2:[function(require,module,exports){
 'use strict';
 
