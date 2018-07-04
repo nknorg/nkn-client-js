@@ -30,8 +30,9 @@ function Client(key, identifier, options = {}) {
   this.addr = addr;
   this.eventListeners = {};
   this.sigChainBlockHash = null;
-  this.shouldClose = false;
+  this.shouldReconnect = false;
   this.reconnectInterval = options.reconnectIntervalMin;
+  this.ws = null;
 
   this.connect();
 };
@@ -42,7 +43,16 @@ Client.prototype.connect = function () {
     'getwsaddr',
     { address: this.addr },
   ).then(res => {
-    const ws = new WebSocket('ws://' + res.result);
+    var ws;
+    try {
+      ws = new WebSocket('ws://' + res.result);
+    } catch (e) {
+      if (this.shouldReconnect) {
+        console.log('Create WebSocket failed.');
+        this.reconnect();
+        return;
+      }
+    }
     this.ws = ws;
 
     ws.onopen = () => {
@@ -50,6 +60,7 @@ Client.prototype.connect = function () {
         Action: 'setClient',
         Addr: this.addr,
       }));
+      this.shouldReconnect = true;
       this.reconnectInterval = this.options.reconnectIntervalMin;
     };
 
@@ -84,14 +95,21 @@ Client.prototype.connect = function () {
     };
 
     ws.onclose = () => {
-      if (!this.shouldClose) {
+      if (this.shouldReconnect) {
         console.log('WebSocket unexpectedly closed.');
         this.reconnect();
       }
     };
+
+    ws.onerror = (err) => {
+      console.log(err.message);
+    }
   }).catch(err => {
     console.error(err);
-    this.reconnect();
+    if (this.shouldReconnect) {
+      console.log('RPC call failed.');
+      this.reconnect();
+    }
   });
 };
 
@@ -122,7 +140,7 @@ Client.prototype.send = function (dest, payload) {
 };
 
 Client.prototype.close = function () {
-  this.shouldClose = true;
+  this.shouldReconnect = false;
   this.ws.close();
 };
 
