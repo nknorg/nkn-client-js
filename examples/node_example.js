@@ -1,5 +1,5 @@
 // Example of nkn-client-js for Node.js
-// Usage: node message_generator.js
+// Usage: node node_example.js
 
 const crypto = require('crypto');
 const nkn = require('../lib/nkn');
@@ -28,6 +28,9 @@ function generateMessage() {
           setTimeout(function () {
             try {
               toClient.close();
+              if (timeReceived === undefined) {
+                console.log('Message from', fromClient.addr, 'to', toClient.addr, 'timeout');
+              }
             } catch (e) {
               console.error(e);
             }
