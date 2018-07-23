@@ -29,7 +29,7 @@ function generateMessage() {
             try {
               toClient.close();
               if (timeReceived === undefined) {
-                console.log('Message from', fromClient.addr, 'to', toClient.addr, 'timeout');
+                console.log('Message from', fromClient.nodeAddr, 'to', toClient.nodeAddr, 'timeout');
               }
             } catch (e) {
               console.error(e);
