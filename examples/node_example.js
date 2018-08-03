@@ -22,7 +22,12 @@ function generateMessage() {
           fromClient.send(
             toClient.addr,
             'This is a generated message.',
-          );
+          ).then(() => {
+            timeReceived = new Date();
+            console.log('Receive ACK from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
+          }).catch((e) => {
+            console.log('Catch: ', e);
+          });
           timeSent = new Date();
           console.log('Send message from', fromClient.addr, 'to', toClient.addr);
           setTimeout(function () {
