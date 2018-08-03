@@ -3,27 +3,23 @@
 
 const WebSocket = require('isomorphic-ws');
 const Is = require('is')
-const Monment = require('moment')
+const Moment = require('moment')
 
 const nknProtocol = require('./protocol');
 const rpcCall = require('./rpc');
 const consts = require('./const');
 
-const MAX_ACK_TIMEOUT = 10
-const MS_MUL= 1000
-const HALF_SECOND = 500
+const HALF_SECOND = 500;
 
 module.exports = Client;
 
-function ACKProcessor(pid, timeout = MAX_ACK_TIMEOUT) {
+function ACKProcessor(pid, timeout) {
   let ackHandler = null
   let timeoutHandler = null
 
-  if(MAX_ACK_TIMEOUT < timeout) {
-    timeout = MAX_ACK_TIMEOUT
-  }
+  let outTime = (new Moment()).add(timeout, 's')
 
-  let outTime = (new Monment()).add(timeout, 's')
+  console.log(new Moment(), outTime);
 
   this.checkTimeout = function (now) {
     return now.isAfter(outTime)
@@ -77,7 +73,7 @@ let ackProcessorTask = new function() {
 
   function timeoutCheck() {
     let timeoutProcessor = []
-    let now = new Monment()
+    let now = new Moment()
     for(let pid in ackProcessorList) {
       if(ackProcessorList[pid].checkTimeout(now)) {
         timeoutProcessor.push(ackProcessorList[pid])
@@ -118,7 +114,7 @@ function handleMsg(msg) {
   switch (msgObj.header.type) {
     case nknProtocol.payloadTypes.MESSAGE_PAYLOAD:
       sendACK(this.ws, msg.Src, msgObj.header.pid)
-      this.eventListeners.message.forEach(f => {
+      this.eventListeners.message && this.eventListeners.message.forEach(f => {
         f(msg.Src, msgObj.payload)
       })
 
@@ -159,6 +155,7 @@ function Client(key, identifier, options = {}) {
   this.sigChainBlockHash = null;
   this.shouldReconnect = false;
   this.reconnectInterval = options.reconnectIntervalMin;
+  this.ackTimeout = options.ackTimeout;
   this.ws = null;
   this.nodeAddr = null;
 
@@ -212,11 +209,9 @@ Client.prototype.connect = function () {
           this.sigChainBlockHash = msg.Result;
           break;
         case 'receivePacket':
-          if (this.eventListeners.message) {
-            let handled = handleMsg.call(this, msg)
-            if(!handled) {
-              console.warn('Unknown msg payload:', msg.Payload);
-            }
+          let handled = handleMsg.call(this, msg);
+          if(!handled) {
+            console.warn('Unknown msg payload:', msg.Payload);
           }
           break;
         case 'sendPacket':
@@ -262,7 +257,7 @@ Client.prototype.on = function (event, func) {
   }
 };
 
-Client.prototype.send = function (dest, payload, timeout = MAX_ACK_TIMEOUT) {
+Client.prototype.send = function (dest, payload, options = {}) {
   let msgPayload = new nknProtocol.stringMessage(payload)
 
   this.ws.send(JSON.stringify({
@@ -272,9 +267,12 @@ Client.prototype.send = function (dest, payload, timeout = MAX_ACK_TIMEOUT) {
     Signature: '',
   }))
 
-  let ackProcessor = new ACKProcessor(msgPayload.header.pid, timeout)
+  let ackProcessor = new ACKProcessor(msgPayload.header.pid, options.ackTimeout || this.ackTimeout)
   ackProcessorTask.setProcessor(ackProcessor)
-  return ackProcessor
+  return new Promise(function(resolve, reject) {
+    ackProcessor.onACK(resolve);
+    ackProcessor.onTimeout(() => reject('Message timeout.'));
+  });
 };
 
 Client.prototype.close = function () {
@@ -292,6 +290,7 @@ module.exports = {
   },
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
+  ackTimeout: 5,
   seedRpcServerAddr: 'http://cluster2-oregon.nkn.org:30003',
 };
 
@@ -376,6 +375,7 @@ function nkn(options = {}) {
   let client = Client(key, options.identifier, {
     reconnectIntervalMin: options.reconnectIntervalMin || consts.reconnectIntervalMin,
     reconnectIntervalMax: options.reconnectIntervalMax || consts.reconnectIntervalMax,
+    ackTimeout: options.ackTimeout || consts.ackTimeout,
     rpcServerAddr: options.seedRpcServerAddr || consts.seedRpcServerAddr,
   });
   return client;
@@ -15061,71 +15061,37 @@ utils.intFromLE = intFromLE;
 
 },{"bn.js":9,"minimalistic-assert":610,"minimalistic-crypto-utils":611}],31:[function(require,module,exports){
 module.exports={
-  "_args": [
-    [
-      {
-        "raw": "elliptic@^6.4.0",
-        "scope": null,
-        "escapedName": "elliptic",
-        "name": "elliptic",
-        "rawSpec": "^6.4.0",
-        "spec": ">=6.4.0 <7.0.0",
-        "type": "range"
-      },
-      "/Users/et/Work/nkn/github/nkn-client-js"
-    ]
+  "name": "elliptic",
+  "version": "6.4.0",
+  "description": "EC cryptography",
+  "main": "lib/elliptic.js",
+  "files": [
+    "lib"
   ],
-  "_from": "elliptic@>=6.4.0 <7.0.0",
-  "_id": "elliptic@6.4.0",
-  "_inCache": true,
-  "_location": "/elliptic",
-  "_nodeVersion": "7.0.0",
-  "_npmOperationalInternal": {
-    "host": "packages-18-east.internal.npmjs.com",
-    "tmp": "tmp/elliptic-6.4.0.tgz_1487798866428_0.30510620190761983"
+  "scripts": {
+    "jscs": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
+    "jshint": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
+    "lint": "npm run jscs && npm run jshint",
+    "unit": "istanbul test _mocha --reporter=spec test/index.js",
+    "test": "npm run lint && npm run unit",
+    "version": "grunt dist && git add dist/"
   },
-  "_npmUser": {
-    "name": "indutny",
-    "email": "fedor@indutny.com"
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:indutny/elliptic"
   },
-  "_npmVersion": "3.10.8",
-  "_phantomChildren": {},
-  "_requested": {
-    "raw": "elliptic@^6.4.0",
-    "scope": null,
-    "escapedName": "elliptic",
-    "name": "elliptic",
-    "rawSpec": "^6.4.0",
-    "spec": ">=6.4.0 <7.0.0",
-    "type": "range"
-  },
-  "_requiredBy": [
-    "/",
-    "/browserify-sign",
-    "/create-ecdh"
+  "keywords": [
+    "EC",
+    "Elliptic",
+    "curve",
+    "Cryptography"
   ],
-  "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz",
-  "_shasum": "cac9af8762c85836187003c8dfe193e5e2eae5df",
-  "_shrinkwrap": null,
-  "_spec": "elliptic@^6.4.0",
-  "_where": "/Users/et/Work/nkn/github/nkn-client-js",
-  "author": {
-    "name": "Fedor Indutny",
-    "email": "fedor@indutny.com"
-  },
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/indutny/elliptic/issues"
   },
-  "dependencies": {
-    "bn.js": "^4.4.0",
-    "brorand": "^1.0.1",
-    "hash.js": "^1.0.0",
-    "hmac-drbg": "^1.0.0",
-    "inherits": "^2.0.1",
-    "minimalistic-assert": "^1.0.0",
-    "minimalistic-crypto-utils": "^1.0.0"
-  },
-  "description": "EC cryptography",
+  "homepage": "https://github.com/indutny/elliptic",
   "devDependencies": {
     "brfs": "^1.4.3",
     "coveralls": "^2.11.3",
@@ -15142,46 +15108,15 @@ module.exports={
     "jshint": "^2.6.0",
     "mocha": "^2.1.0"
   },
-  "directories": {},
-  "dist": {
-    "shasum": "cac9af8762c85836187003c8dfe193e5e2eae5df",
-    "tarball": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz"
-  },
-  "files": [
-    "lib"
-  ],
-  "gitHead": "6b0d2b76caae91471649c8e21f0b1d3ba0f96090",
-  "homepage": "https://github.com/indutny/elliptic",
-  "keywords": [
-    "EC",
-    "Elliptic",
-    "curve",
-    "Cryptography"
-  ],
-  "license": "MIT",
-  "main": "lib/elliptic.js",
-  "maintainers": [
-    {
-      "name": "indutny",
-      "email": "fedor@indutny.com"
-    }
-  ],
-  "name": "elliptic",
-  "optionalDependencies": {},
-  "readme": "ERROR: No README data found!",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/indutny/elliptic.git"
-  },
-  "scripts": {
-    "jscs": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
-    "jshint": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
-    "lint": "npm run jscs && npm run jshint",
-    "test": "npm run lint && npm run unit",
-    "unit": "istanbul test _mocha --reporter=spec test/index.js",
-    "version": "grunt dist && git add dist/"
-  },
-  "version": "6.4.0"
+  "dependencies": {
+    "bn.js": "^4.4.0",
+    "brorand": "^1.0.1",
+    "hash.js": "^1.0.0",
+    "hmac-drbg": "^1.0.0",
+    "inherits": "^2.0.1",
+    "minimalistic-assert": "^1.0.0",
+    "minimalistic-crypto-utils": "^1.0.0"
+  }
 }
 
 },{}],32:[function(require,module,exports){

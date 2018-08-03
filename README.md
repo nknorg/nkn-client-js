@@ -111,6 +111,43 @@ client.on('message', (src, payload) => {
 });
 ```
 
+Client receiving data will automatically send an acknowledgement back to sender
+so that sender will be able to know if the packet has been delivered. `send`
+method will return a Promise that will be resolved when acknowledgement has ben
+received, or rejected if not receiving acknowledgement within timeout period:
+
+```javascript
+client.send(
+  'another client address',
+  'some message',
+).then(() => {
+  console.log('Receive ACK');
+}).catch((e) => {
+  // This will most likely to be timeout
+  console.log('Catch:', e);
+});
+```
+
+Timeout for receiving acknowledgement can be set when initializing client:
+
+```javascript
+const client = nkn({
+  ackTimeout: 5, // in seconds
+});
+```
+
+or when sending a packet:
+
+```javascript
+client.send(
+  'another client address',
+  'some message',
+  {
+    ackTimeout: 5, // in seconds
+  },
+)
+```
+
 Check [examples](examples) for full examples.
 
 ## Contributing
