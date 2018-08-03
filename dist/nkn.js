@@ -19,8 +19,6 @@ function ACKProcessor(pid, timeout) {
 
   let outTime = (new Moment()).add(timeout, 's')
 
-  console.log(new Moment(), outTime);
-
   this.checkTimeout = function (now) {
     return now.isAfter(outTime)
   }
@@ -50,8 +48,9 @@ function ACKProcessor(pid, timeout) {
   }
 }
 
-let ackProcessorTask = new function() {
-  let ackProcessorList = {}
+function ACKProcessorTask() {
+  let ackProcessorList = {};
+  let timer = null;
 
   this.setProcessor = function (proceccor) {
     ackProcessorList[proceccor.pid] = proceccor
@@ -62,6 +61,11 @@ let ackProcessorTask = new function() {
       ackProcessorList[pid].handleTimeout()
     }
     ackProcessorList = {}
+  }
+
+  this.stopProcessor = function () {
+    clearTimeout(timer);
+    this.clearProcessor();
   }
 
   this.callACKHandler = function (pid) {
@@ -85,7 +89,7 @@ let ackProcessorTask = new function() {
       delete ackProcessorList[p.pid]
     })
 
-    setTimeout(timeoutCheck, HALF_SECOND)
+    timer = setTimeout(timeoutCheck, HALF_SECOND)
   }
 
   timeoutCheck()
@@ -122,7 +126,7 @@ function handleMsg(msg) {
       break
 
     case nknProtocol.payloadTypes.ACK_PAYLOAD:
-      ackProcessorTask.callACKHandler(msgObj.payload)
+      this.ackProcessorTask.callACKHandler(msgObj.payload)
       ret = true
       break
   }
@@ -156,6 +160,7 @@ function Client(key, identifier, options = {}) {
   this.shouldReconnect = false;
   this.reconnectInterval = options.reconnectIntervalMin;
   this.ackTimeout = options.ackTimeout;
+  this.ackProcessorTask = new ACKProcessorTask();
   this.ws = null;
   this.nodeAddr = null;
 
@@ -268,7 +273,7 @@ Client.prototype.send = function (dest, payload, options = {}) {
   }))
 
   let ackProcessor = new ACKProcessor(msgPayload.header.pid, options.ackTimeout || this.ackTimeout)
-  ackProcessorTask.setProcessor(ackProcessor)
+  this.ackProcessorTask.setProcessor(ackProcessor)
   return new Promise(function(resolve, reject) {
     ackProcessor.onACK(resolve);
     ackProcessor.onTimeout(() => reject('Message timeout.'));
@@ -278,7 +283,7 @@ Client.prototype.send = function (dest, payload, options = {}) {
 Client.prototype.close = function () {
   this.shouldReconnect = false;
   this.ws.close();
-  ackProcessorTask.clearProcessor()
+  this.ackProcessorTask.stopProcessor()
 };
 
 },{"./const":2,"./protocol":7,"./rpc":8,"is":51,"isomorphic-ws":52,"moment":612}],2:[function(require,module,exports){
