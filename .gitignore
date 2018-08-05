@@ -5,6 +5,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Yarn lock
+yarn.lock
+
+# .gitignore
+.gitignore
+
 # Runtime data
 pids
 *.pid
