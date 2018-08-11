@@ -1,5 +1,5 @@
 {
-  "name": "nkn-client",
+  "name": "nkn-client-js",
   "version": "0.2.1",
   "description": "NKN Client",
   "main": "lib/nkn.js",
