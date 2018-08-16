@@ -296,7 +296,7 @@ module.exports = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
   ackTimeout: 5,
-  seedRpcServerAddr: 'http://cluster2-oregon.nkn.org:30003',
+  seedRpcServerAddr: 'http://node00001.nkn.org:30003',
 };
 
 },{}],3:[function(require,module,exports){
