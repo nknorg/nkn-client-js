@@ -94,7 +94,7 @@ client.on('connect', () => {
 });
 ```
 
-Send data to other clients:
+Send text message to other clients:
 
 ```javascript
 client.send(
@@ -103,11 +103,24 @@ client.send(
 );
 ```
 
+You can also send byte array directly:
+
+```javascript
+client.send(
+  'another client address',
+  Uint8Array.from([1,2,3,4,5]),
+);
+```
+
 Receive data from other clients:
 
 ```javascript
-client.on('message', (src, payload) => {
-  console.log(src, payload);
+client.on('message', (src, payload, payloadType) => {
+  if (payloadType === nkn.PayloadType.TEXT) {
+    console.log('Receive text message:', src, payload);
+  } else if (payloadType === nkn.PayloadType.BINARY) {
+    console.log('Receive binary message:', src, payload);
+  }
 });
 ```
 

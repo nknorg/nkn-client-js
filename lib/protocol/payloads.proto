@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+enum PayloadType {
+  BINARY = 0;
+  TEXT = 1;
+  ACK = 2;
+}
+
+message Payload {
+  PayloadType type = 1;
+  bytes pid = 2;
+  bytes reply_to_pid = 4;
+  bytes data = 3;
+}
+
+message TextData {
+  string text = 1;
+}

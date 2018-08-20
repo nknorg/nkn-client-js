@@ -4,6 +4,10 @@
 const crypto = require('crypto');
 const nkn = require('../lib/nkn');
 
+// Use default seed rpc server:
+const seedRpcServerAddr = undefined;
+// Use local seed rpc server:
+// const seedRpcServerAddr = 'http://127.0.0.1:30007';
 const timeout = 5000;
 var timeSent, timeReceived;
 
@@ -12,16 +16,21 @@ function generateMessage() {
     // neither of these are required, as shown in toClient below
     identifier: crypto.randomBytes(8).toString('hex'),
     privateKey: 'cd5fa29ed5b0e951f3d1bce5997458706186320f1dd89156a73d54ed752a7f37',
+    seedRpcServerAddr: seedRpcServerAddr,
   });
 
   fromClient.on('connect', () => {
     try {
-      let toClient = nkn();
+      let toClient = nkn({
+        seedRpcServerAddr: seedRpcServerAddr,
+      });
       toClient.on('connect', () => {
         try {
           fromClient.send(
             toClient.addr,
             'This is a generated message.',
+            // For byte array:
+            // Uint8Array.from([1,2,3,4,5]),
           ).then(() => {
             timeReceived = new Date();
             console.log('Receive ACK from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
@@ -44,9 +53,15 @@ function generateMessage() {
           console.error(e);
         }
       });
-      toClient.on('message', (src, payload) => {
+      toClient.on('message', (src, payload, payloadType) => {
         timeReceived = new Date();
-        console.log('Receive message from', src, 'after', timeReceived - timeSent, 'ms');
+        var type;
+        if (payloadType === nkn.PayloadType.TEXT) {
+          type = 'text';
+        } else if (payloadType === nkn.PayloadType.BINARY) {
+          type = 'binary';
+        }
+        console.log('Receive', type, 'message', '"' + payload + '"','from', src, 'after', timeReceived - timeSent, 'ms');
       });
       setTimeout(function () {
         try {
