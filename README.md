@@ -67,7 +67,7 @@ a client using customized bootstrap RPC server:
 ```javascript
 const client = nkn({
   identifier: 'any string',
-  seedRpcServerAddr: 'https://xxx',
+  seedRpcServerAddr: 'https://ip:port',
 });
 ```
 
@@ -99,7 +99,7 @@ Send text message to other clients:
 ```javascript
 client.send(
   'another client address',
-  'some message',
+  'hello world!',
 );
 ```
 
@@ -124,15 +124,47 @@ client.on('message', (src, payload, payloadType) => {
 });
 ```
 
-Client receiving data will automatically send an acknowledgement back to sender
-so that sender will be able to know if the packet has been delivered. `send`
-method will return a Promise that will be resolved when acknowledgement has ben
-received, or rejected if not receiving acknowledgement within timeout period:
+If a valid data (string or Uint8Array) is returned at the end of the handler,
+the data will be sent back to sender as response:
+
+```javascript
+client.on('message', (src, payload, payloadType) => {
+  return 'Well received!';
+  // You can also return a byte array:
+  // return Uint8Array.from([1,2,3,4,5]);
+});
+```
+
+Note that if multiple onmessage handlers are added, the result returned by the
+first handler (in the order of being added) will be sent as response.
+
+The `send` method will return a Promise that will be resolved when sender
+receives a response, or rejected if not receiving acknowledgement within timeout
+period. Similar to message, response can be either string or byte array:
 
 ```javascript
 client.send(
   'another client address',
-  'some message',
+  'hello world!',
+).then((response) => {
+  // The response here can be either string or Uint8Array
+  console.log('Receive response:', response);
+}).catch((e) => {
+  // This will most likely to be timeout
+  console.log('Catch:', e);
+});
+```
+
+Client receiving data will automatically send an acknowledgement back to sender
+if no response is returned by any handler so that sender will be able to know if
+the packet has been delivered. From the sender's perspective, it's almost the
+same as receiving a response, except that the Promise is resolved without a
+value:
+
+```javascript
+client.send(
+  'another client address',
+  'hello world!',
 ).then(() => {
   console.log('Receive ACK');
 }).catch((e) => {
@@ -141,11 +173,12 @@ client.send(
 });
 ```
 
-Timeout for receiving acknowledgement can be set when initializing client:
+Timeout for receiving response or acknowledgement can be set when initializing
+client:
 
 ```javascript
 const client = nkn({
-  ackTimeout: 5, // in seconds
+  responseTimeout: 5, // in seconds
 });
 ```
 
@@ -154,9 +187,9 @@ or when sending a packet:
 ```javascript
 client.send(
   'another client address',
-  'some message',
+  'Hello world!',
   {
-    ackTimeout: 5, // in seconds
+    responseTimeout: 5, // in seconds
   },
 )
 ```

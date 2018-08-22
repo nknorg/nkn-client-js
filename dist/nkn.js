@@ -9,22 +9,23 @@ const protocol = require('./protocol');
 const rpcCall = require('./rpc');
 const consts = require('./const');
 
-const HALF_SECOND = 500;
+const TIMEOUT_CHECK_INTERVAL = 250;
 
-function ACKProcessor(pid, timeout) {
-  let ackHandler = null
+function ResponseProcessor(pid, timeout) {
+  let responseHandler = null
   let timeoutHandler = null
 
-  let outTime = (new Moment()).add(timeout, 's')
+  let now = new Moment()
+  let deadline = now.add(timeout, 's')
 
   this.checkTimeout = function (now) {
-    return now.isAfter(outTime)
+    return now.isAfter(deadline)
   }
 
   this.pid = pid
 
-  this.onACK = function (handler) {
-    ackHandler = handler
+  this.onResponse = function (handler) {
+    responseHandler = handler
     return this
   }
 
@@ -33,9 +34,9 @@ function ACKProcessor(pid, timeout) {
     return this
   }
 
-  this.handleACK = function () {
-    if(Is.function(ackHandler)) {
-      ackHandler(this.pid)
+  this.handleResponse = function (data) {
+    if(Is.function(responseHandler)) {
+      responseHandler(data)
     }
   }
 
@@ -46,19 +47,19 @@ function ACKProcessor(pid, timeout) {
   }
 }
 
-function ACKProcessorTask() {
-  let ackProcessorList = {};
+function ResponseManager() {
+  let responseProcessorList = {};
   let timer = null;
 
   this.setProcessor = function (proceccor) {
-    ackProcessorList[proceccor.pid] = proceccor
+    responseProcessorList[proceccor.pid] = proceccor
   }
 
   this.clearProcessor = function () {
-    for(let pid in ackProcessorList) {
-      ackProcessorList[pid].handleTimeout()
+    for(let pid in responseProcessorList) {
+      responseProcessorList[pid].handleTimeout()
     }
-    ackProcessorList = {}
+    responseProcessorList = {}
   }
 
   this.stopProcessor = function () {
@@ -66,31 +67,47 @@ function ACKProcessorTask() {
     this.clearProcessor();
   }
 
-  this.callACKHandler = function (pid) {
-    if(Is.instanceof(ackProcessorList[pid], ACKProcessor)) {
-      ackProcessorList[pid].handleACK()
-      delete ackProcessorList[pid]
+  this.callResponseHandler = function (pid, data) {
+    if(Is.instanceof(responseProcessorList[pid], ResponseProcessor)) {
+      responseProcessorList[pid].handleResponse(data)
+      delete responseProcessorList[pid]
     }
   }
 
   function timeoutCheck() {
     let timeoutProcessor = []
     let now = new Moment()
-    for(let pid in ackProcessorList) {
-      if(ackProcessorList[pid].checkTimeout(now)) {
-        timeoutProcessor.push(ackProcessorList[pid])
+    for(let pid in responseProcessorList) {
+      if(responseProcessorList[pid].checkTimeout(now)) {
+        timeoutProcessor.push(responseProcessorList[pid])
       }
     }
 
     timeoutProcessor.forEach(p => {
       p.handleTimeout()
-      delete ackProcessorList[p.pid]
+      delete responseProcessorList[p.pid]
     })
 
-    timer = setTimeout(timeoutCheck, HALF_SECOND)
+    timer = setTimeout(timeoutCheck, TIMEOUT_CHECK_INTERVAL)
   }
 
   timeoutCheck()
+}
+
+function sendMsg(ws, dest, data, replyToPid) {
+  let payload;
+  if (Is.string(data)) {
+    payload = protocol.newTextPayload(data, replyToPid);
+  } else {
+    payload = protocol.newBinaryPayload(data, replyToPid);
+  }
+
+  let msg = new protocol.messages.OutboundMessage();
+  msg.setDest(dest);
+  msg.setPayload(payload.serializeBinary());
+  ws.send(msg.serializeBinary());
+
+  return payload.getPid();
 }
 
 function sendACK(ws, dest, pid) {
@@ -101,30 +118,57 @@ function sendACK(ws, dest, pid) {
   ws.send(msg.serializeBinary());
 };
 
-function handleMsg(raw) {
-  let handled = false;
-  let msg = protocol.messages.InboundMessage.deserializeBinary(raw);
+function handleMsg(rawMsg) {
+  let msg = protocol.messages.InboundMessage.deserializeBinary(rawMsg);
   let payload = protocol.payloads.Payload.deserializeBinary(msg.getPayload());
   let data = payload.getData();
 
+  // process data
   switch (payload.getType()) {
     case protocol.payloads.PayloadType.TEXT:
       let textData = protocol.payloads.TextData.deserializeBinary(data);
       data = textData.getText();
-    case protocol.payloads.PayloadType.BINARY:
-      sendACK(this.ws, msg.getSrc(), payload.getPid());
-      this.eventListeners.message && this.eventListeners.message.forEach(f => {
-        f(msg.getSrc(), data, payload.getType());
-      });
-      handled = true;
       break;
     case protocol.payloads.PayloadType.ACK:
-      this.ackProcessorTask.callACKHandler(payload.getReplyToPid());
-      handled = true;
+      data = undefined;
       break;
   }
 
-  return handled;
+  // handle response if applicable
+  if (payload.getReplyToPid().length) {
+    this.responseManager.callResponseHandler(payload.getReplyToPid(), data, payload.getType());
+    return true;
+  }
+
+  // handle msg
+  switch (payload.getType()) {
+    case protocol.payloads.PayloadType.TEXT:
+    case protocol.payloads.PayloadType.BINARY:
+      let responses = [];
+      if (this.eventListeners.message) {
+        responses = this.eventListeners.message.map(f => {
+          try {
+            return f(msg.getSrc(), data, payload.getType());
+          } catch (e) {
+            console.error(e);
+          }
+        });
+      }
+      let responded = false;
+      for (let response of responses) {
+        if (response !== undefined && response !== null) {
+          sendMsg(this.ws, msg.getSrc(), response, payload.getPid());
+          responded = true;
+          break;
+        }
+      }
+      if (!responded) {
+        sendACK(this.ws, msg.getSrc(), payload.getPid());
+      }
+      return true;
+  }
+
+  return false;
 }
 
 function Client(key, identifier, options = {}) {
@@ -152,8 +196,8 @@ function Client(key, identifier, options = {}) {
   this.sigChainBlockHash = null;
   this.shouldReconnect = false;
   this.reconnectInterval = options.reconnectIntervalMin;
-  this.ackTimeout = options.ackTimeout;
-  this.ackProcessorTask = new ACKProcessorTask();
+  this.responseTimeout = options.responseTimeout;
+  this.responseManager = new ResponseManager();
   this.ws = null;
   this.nodeAddr = null;
 
@@ -257,31 +301,19 @@ Client.prototype.on = function (event, func) {
 };
 
 Client.prototype.send = function (dest, data, options = {}) {
-  var payload;
-
-  if (Is.string(data)) {
-    payload = protocol.newTextPayload(data);
-  } else {
-    payload = protocol.newBinaryPayload(data);
-  }
-
-  let msg = new protocol.messages.OutboundMessage();
-  msg.setDest(dest);
-  msg.setPayload(payload.serializeBinary());
-  this.ws.send(msg.serializeBinary());
-
-  let ackProcessor = new ACKProcessor(payload.getPid(), options.ackTimeout || this.ackTimeout)
-  this.ackProcessorTask.setProcessor(ackProcessor)
+  let pid = sendMsg(this.ws, dest, data);
+  let responseProcessor = new ResponseProcessor(pid, options.responseTimeout || this.responseTimeout)
+  this.responseManager.setProcessor(responseProcessor)
   return new Promise(function(resolve, reject) {
-    ackProcessor.onACK(resolve);
-    ackProcessor.onTimeout(() => reject('Message timeout.'));
+    responseProcessor.onResponse(resolve);
+    responseProcessor.onTimeout(() => reject('Message timeout.'));
   });
 };
 
 Client.prototype.close = function () {
   this.shouldReconnect = false;
   this.ws.close();
-  this.ackProcessorTask.stopProcessor()
+  this.responseManager.stopProcessor()
 };
 
 module.exports = Client;
@@ -295,7 +327,7 @@ module.exports = {
   },
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
-  ackTimeout: 5,
+  responseTimeout: 5,
   seedRpcServerAddr: 'http://node00001.nkn.org:30003',
 };
 
@@ -381,7 +413,7 @@ function nkn(options = {}) {
   let client = Client(key, options.identifier, {
     reconnectIntervalMin: options.reconnectIntervalMin || consts.reconnectIntervalMin,
     reconnectIntervalMax: options.reconnectIntervalMax || consts.reconnectIntervalMax,
-    ackTimeout: options.ackTimeout || consts.ackTimeout,
+    responseTimeout: options.responseTimeout || consts.responseTimeout,
     rpcServerAddr: options.seedRpcServerAddr || consts.seedRpcServerAddr,
   });
   return client;
@@ -400,25 +432,26 @@ const payloads = require('./payloads_pb');
 module.exports.newBinaryPayload = function (data, replyToPid) {
   let payload = new payloads.Payload();
   payload.setType(payloads.PayloadType.BINARY);
-  payload.setPid(crypto.tools.genPID());
-  payload.setData(data);
   if (replyToPid) {
     payload.setReplyToPid(replyToPid);
+  } else {
+    payload.setPid(crypto.tools.genPID());
   }
+  payload.setData(data);
   return payload;
 }
 
 module.exports.newTextPayload = function (text, replyToPid) {
-  let data = new payloads.TextData();
-  data.setText(text);
-
   let payload = new payloads.Payload();
   payload.setType(payloads.PayloadType.TEXT);
-  payload.setPid(crypto.tools.genPID());
-  payload.setData(data.serializeBinary());
   if (replyToPid) {
     payload.setReplyToPid(replyToPid);
+  } else {
+    payload.setPid(crypto.tools.genPID());
   }
+  let data = new payloads.TextData();
+  data.setText(text);
+  payload.setData(data.serializeBinary());
   return payload;
 }
 

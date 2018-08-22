@@ -7,7 +7,7 @@ const nkn = require('../lib/nkn');
 // Use default seed rpc server:
 const seedRpcServerAddr = undefined;
 // Use local seed rpc server:
-// const seedRpcServerAddr = 'http://127.0.0.1:30007';
+// const seedRpcServerAddr = 'http://127.0.0.1:30003';
 const timeout = 5000;
 var timeSent, timeReceived;
 
@@ -28,12 +28,12 @@ function generateMessage() {
         try {
           fromClient.send(
             toClient.addr,
-            'This is a generated message.',
+            'Hello world!',
             // For byte array:
             // Uint8Array.from([1,2,3,4,5]),
-          ).then(() => {
+          ).then((data) => {
             timeReceived = new Date();
-            console.log('Receive ACK from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
+            console.log('Receive', '"' + data + '"', 'from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
           }).catch((e) => {
             console.log('Catch: ', e);
           });
@@ -62,6 +62,10 @@ function generateMessage() {
           type = 'binary';
         }
         console.log('Receive', type, 'message', '"' + payload + '"','from', src, 'after', timeReceived - timeSent, 'ms');
+        // Send a text response
+        return 'Well received!';
+        // For byte array response:
+        // return Uint8Array.from([1,2,3,4,5])
       });
       setTimeout(function () {
         try {
