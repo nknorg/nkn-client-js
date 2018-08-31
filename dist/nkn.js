@@ -328,7 +328,7 @@ module.exports = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
   responseTimeout: 5,
-  seedRpcServerAddr: 'http://testnet.nkn.org:30003',
+  seedRpcServerAddr: 'http://testnet-node-0001.nkn.org:30003',
 };
 
 },{}],3:[function(require,module,exports){
