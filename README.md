@@ -115,6 +115,7 @@ client.send(
 Receive data from other clients:
 
 ```javascript
+// can also be async (src, payload, payloadType) => {}
 client.on('message', (src, payload, payloadType) => {
   if (payloadType === nkn.PayloadType.TEXT) {
     console.log('Receive text message:', src, payload);

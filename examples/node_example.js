@@ -53,6 +53,7 @@ function generateMessage() {
           console.error(e);
         }
       });
+      // can also be async (src, payload, payloadType) => {}
       toClient.on('message', (src, payload, payloadType) => {
         timeReceived = new Date();
         var type;
