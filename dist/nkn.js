@@ -207,80 +207,92 @@ function Client(key, identifier, options = {}) {
   this.connect();
 };
 
+function newWsAddr(addr) {
+  var ws;
+  try {
+    ws = new WebSocket('ws://' + addr);
+    ws.binaryType = "arraybuffer";
+  } catch (e) {
+    if (this.shouldReconnect) {
+      console.log('Create WebSocket failed.');
+      this.reconnect();
+    }
+    return;
+  }
+
+  if (this.ws) {
+    this.ws.onclose = () => {};
+    this.ws.close();
+  }
+
+  this.ws = ws;
+  this.nodeAddr = addr;
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      Action: 'setClient',
+      Addr: this.addr,
+    }));
+    this.shouldReconnect = true;
+    this.reconnectInterval = this.options.reconnectIntervalMin;
+  };
+
+  ws.onmessage = async (event) => {
+    if (event.data instanceof ArrayBuffer) {
+      try {
+        let handled = await handleMsg.bind(this)(event.data);
+        if(!handled) {
+          console.warn('Unhandled msg.');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
+
+    let msg = JSON.parse(event.data);
+    if (msg.Error !== undefined && msg.Error !== consts.errCodes.success) {
+      console.error(msg);
+      if (msg.Error === consts.errCodes.wrongNode) {
+        newWsAddr.call(this, msg.Result);
+      } else if (msg.Action === 'setClient') {
+        this.ws.close();
+      }
+      return;
+    }
+    switch (msg.Action) {
+      case 'setClient':
+        if (this.eventListeners.connect) {
+          this.eventListeners.connect.forEach(f => f());
+        }
+        break;
+      case 'updateSigChainBlockHash':
+        this.sigChainBlockHash = msg.Result;
+        break;
+      default:
+        console.warn('Unknown msg type:', msg.Action);
+    }
+  };
+
+  ws.onclose = () => {
+    if (this.shouldReconnect) {
+      console.log('WebSocket unexpectedly closed.');
+      this.reconnect();
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.log(err.message);
+  }
+}
+
 Client.prototype.connect = function () {
   rpcCall(
     this.options.rpcServerAddr,
     'getwsaddr',
     { address: this.addr },
   ).then(res => {
-    var ws;
-    try {
-      ws = new WebSocket('ws://' + res.result);
-      ws.binaryType = "arraybuffer";
-    } catch (e) {
-      if (this.shouldReconnect) {
-        console.log('Create WebSocket failed.');
-        this.reconnect();
-      }
-      return;
-    }
-    this.ws = ws;
-    this.nodeAddr = res.result;
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        Action: 'setClient',
-        Addr: this.addr,
-      }));
-      this.shouldReconnect = true;
-      this.reconnectInterval = this.options.reconnectIntervalMin;
-    };
-
-    ws.onmessage = async (event) => {
-      if (event.data instanceof ArrayBuffer) {
-        try {
-          let handled = await handleMsg.bind(this)(event.data);
-          if(!handled) {
-            console.warn('Unhandled msg.');
-          }
-        } catch (e) {
-          console.error(e);
-        }
-        return;
-      }
-
-      let msg = JSON.parse(event.data);
-      if (msg.Error !== undefined && msg.Error !== consts.errCodes.success) {
-        console.error(msg);
-        if (msg.Action === 'setClient') {
-          this.ws.close();
-        }
-        return;
-      }
-      switch (msg.Action) {
-        case 'setClient':
-          if (this.eventListeners.connect) {
-            this.eventListeners.connect.forEach(f => f());
-          }
-          break;
-        case 'updateSigChainBlockHash':
-          this.sigChainBlockHash = msg.Result;
-          break;
-        default:
-          console.warn('Unknown msg type:', msg.Action);
-      }
-    };
-
-    ws.onclose = () => {
-      if (this.shouldReconnect) {
-        console.log('WebSocket unexpectedly closed.');
-        this.reconnect();
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.log(err.message);
-    }
+    newWsAddr.call(this, res.result);
   }).catch(err => {
     console.error(err);
     if (this.shouldReconnect) {
@@ -331,6 +343,7 @@ module.exports = Client;
 module.exports = {
   errCodes: {
     success: 0,
+    wrongNode: 48001,
   },
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
