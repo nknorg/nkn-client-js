@@ -2,6 +2,9 @@
 
 # nkn-client-js
 
+[English](/docs/README-en.md) •
+[Русский](/docs/README-ru.md)
+
 JavaScript implementation of NKN client.
 
 Send and receive data between any NKN clients without setting up a server.
