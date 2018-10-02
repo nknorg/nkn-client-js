@@ -96,7 +96,7 @@ function ResponseManager() {
   timeoutCheck()
 }
 
-function sendMsg(ws, dest, data, replyToPid) {
+function sendMsg(ws, dest, data, maxHoldingSeconds, replyToPid) {
   let payload;
   if (Is.string(data)) {
     payload = protocol.newTextPayload(data, replyToPid);
@@ -105,8 +105,17 @@ function sendMsg(ws, dest, data, replyToPid) {
   }
 
   let msg = new protocol.messages.OutboundMessage();
-  msg.setDest(dest);
+
+  if (Array.isArray(dest)) {
+    msg.setDestsList(dest);
+  } else {
+    msg.setDest(dest);
+  }
+
   msg.setPayload(payload.serializeBinary());
+
+  msg.setMaxHoldingSeconds(maxHoldingSeconds);
+
   ws.send(msg.serializeBinary());
 
   return payload.getPid();
@@ -117,6 +126,7 @@ function sendACK(ws, dest, pid) {
   let msg = new protocol.messages.OutboundMessage();
   msg.setDest(dest);
   msg.setPayload(payload.serializeBinary());
+  msg.setMaxHoldingSeconds(0);
   ws.send(msg.serializeBinary());
 };
 
@@ -160,7 +170,7 @@ async function handleMsg(rawMsg) {
       let responded = false;
       for (let response of responses) {
         if (response !== undefined && response !== null) {
-          sendMsg(this.ws, msg.getSrc(), response, payload.getPid());
+          sendMsg(this.ws, msg.getSrc(), response, 0, payload.getPid());
           responded = true;
           break;
         }
@@ -200,6 +210,7 @@ function Client(key, identifier, options = {}) {
   this.shouldReconnect = false;
   this.reconnectInterval = options.reconnectIntervalMin;
   this.responseTimeout = options.responseTimeout;
+  this.msgHoldingSeconds = options.msgHoldingSeconds;
   this.responseManager = new ResponseManager();
   this.ws = null;
   this.nodeAddr = null;
@@ -320,7 +331,11 @@ Client.prototype.on = function (event, func) {
 };
 
 Client.prototype.send = function (dest, data, options = {}) {
-  let pid = sendMsg(this.ws, dest, data);
+  let msgHoldingSeconds = options.msgHoldingSeconds
+  if (msgHoldingSeconds === undefined) {
+    msgHoldingSeconds = this.msgHoldingSeconds
+  }
+  let pid = sendMsg(this.ws, dest, data, msgHoldingSeconds);
   let responseProcessor = new ResponseProcessor(pid, options.responseTimeout || this.responseTimeout)
   this.responseManager.setProcessor(responseProcessor)
   return new Promise(function(resolve, reject) {
@@ -348,6 +363,7 @@ module.exports = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
   responseTimeout: 5,
+  msgHoldingSeconds: 3600,
   seedRpcServerAddr: 'http://testnet-node-0001.nkn.org:30003',
 };
 
@@ -430,12 +446,20 @@ function nkn(options = {}) {
   let key = crypto.Key({
     privateKey: options.privateKey,
   });
+
+  let msgHoldingSeconds = options.msgHoldingSeconds
+  if (msgHoldingSeconds === undefined) {
+    msgHoldingSeconds = consts.msgHoldingSeconds
+  }
+
   let client = Client(key, options.identifier, {
     reconnectIntervalMin: options.reconnectIntervalMin || consts.reconnectIntervalMin,
     reconnectIntervalMax: options.reconnectIntervalMax || consts.reconnectIntervalMax,
     responseTimeout: options.responseTimeout || consts.responseTimeout,
+    msgHoldingSeconds: msgHoldingSeconds,
     rpcServerAddr: options.seedRpcServerAddr || consts.seedRpcServerAddr,
   });
+
   return client;
 }
 
@@ -513,12 +537,19 @@ goog.exportSymbol('proto.client.OutboundMessage', null, global);
  * @constructor
  */
 proto.client.OutboundMessage = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.client.OutboundMessage.repeatedFields_, null);
 };
 goog.inherits(proto.client.OutboundMessage, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.client.OutboundMessage.displayName = 'proto.client.OutboundMessage';
 }
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.client.OutboundMessage.repeatedFields_ = [3];
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -549,7 +580,9 @@ proto.client.OutboundMessage.prototype.toObject = function(opt_includeInstance) 
 proto.client.OutboundMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
     dest: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    payload: msg.getPayload_asB64()
+    payload: msg.getPayload_asB64(),
+    destsList: jspb.Message.getRepeatedField(msg, 3),
+    maxHoldingSeconds: jspb.Message.getFieldWithDefault(msg, 4, 0)
   };
 
   if (includeInstance) {
@@ -594,6 +627,14 @@ proto.client.OutboundMessage.deserializeBinaryFromReader = function(msg, reader)
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setPayload(value);
       break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addDests(value);
+      break;
+    case 4:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setMaxHoldingSeconds(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -634,6 +675,20 @@ proto.client.OutboundMessage.serializeBinaryToWriter = function(message, writer)
   if (f.length > 0) {
     writer.writeBytes(
       2,
+      f
+    );
+  }
+  f = message.getDestsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      3,
+      f
+    );
+  }
+  f = message.getMaxHoldingSeconds();
+  if (f !== 0) {
+    writer.writeUint32(
+      4,
       f
     );
   }
@@ -691,6 +746,50 @@ proto.client.OutboundMessage.prototype.getPayload_asU8 = function() {
 /** @param {!(string|Uint8Array)} value */
 proto.client.OutboundMessage.prototype.setPayload = function(value) {
   jspb.Message.setProto3BytesField(this, 2, value);
+};
+
+
+/**
+ * repeated string dests = 3;
+ * @return {!Array<string>}
+ */
+proto.client.OutboundMessage.prototype.getDestsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
+};
+
+
+/** @param {!Array<string>} value */
+proto.client.OutboundMessage.prototype.setDestsList = function(value) {
+  jspb.Message.setField(this, 3, value || []);
+};
+
+
+/**
+ * @param {!string} value
+ * @param {number=} opt_index
+ */
+proto.client.OutboundMessage.prototype.addDests = function(value, opt_index) {
+  jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+};
+
+
+proto.client.OutboundMessage.prototype.clearDestsList = function() {
+  this.setDestsList([]);
+};
+
+
+/**
+ * optional uint32 max_holding_seconds = 4;
+ * @return {number}
+ */
+proto.client.OutboundMessage.prototype.getMaxHoldingSeconds = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
+};
+
+
+/** @param {number} value */
+proto.client.OutboundMessage.prototype.setMaxHoldingSeconds = function(value) {
+  jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
