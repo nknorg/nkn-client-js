@@ -2,7 +2,7 @@
 
 # nkn-client-js
 
-[English](/docs/README-en.md) •
+[English](/README.md) •
 [Русский](/docs/README-ru.md)
 
 JavaScript реализация NKN клиента.
