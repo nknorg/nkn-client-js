@@ -115,6 +115,14 @@ client.send(
 );
 ```
 
+Or publish text message to a topic:
+
+```javascript
+client.publish(
+  'topic',
+  'hello world!',
+);
+```
 Receive data from other clients:
 
 ```javascript
