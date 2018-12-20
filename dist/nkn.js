@@ -280,6 +280,11 @@ function newWsAddr(addr) {
       case 'updateSigChainBlockHash':
         this.sigChainBlockHash = msg.Result;
         break;
+      case 'sendRawBlock':
+        if (this.eventListeners.block) {
+          this.eventListeners.block.forEach(f => f(msg.Result));
+        }
+        break;
       default:
         console.warn('Unknown msg type:', msg.Action);
     }
