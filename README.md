@@ -2,7 +2,7 @@
 
 # nkn-client-js
 
-[English](/docs/README-en.md) •
+[English](/README.md) •
 [Русский](/docs/README-ru.md)
 
 JavaScript implementation of NKN client.
@@ -115,6 +115,14 @@ client.send(
 );
 ```
 
+Or publish text message to a topic (subscribe is done through [nkn-wallet-js](https://github.com/nknorg/nkn-wallet-js)):
+
+```javascript
+client.publish(
+  'topic',
+  'hello world!',
+);
+```
 Receive data from other clients:
 
 ```javascript
