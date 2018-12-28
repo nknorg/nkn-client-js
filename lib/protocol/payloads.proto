@@ -9,8 +9,9 @@ enum PayloadType {
 message Payload {
   PayloadType type = 1;
   bytes pid = 2;
-  bytes reply_to_pid = 4;
   bytes data = 3;
+  bytes reply_to_pid = 4;
+  bool no_ack = 5;
 }
 
 message TextData {
