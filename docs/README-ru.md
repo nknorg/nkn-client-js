@@ -52,7 +52,7 @@ const client = nkn({
 Получить пару ключей:
 
 ```javascript
-console.log(client.key.privateKey, client.key.publicKey);
+console.log(client.key.seed, client.key.privateKey, client.key.publicKey);
 ```
 
 Создайте клиент, используя существующий приватный ключ:
@@ -60,7 +60,7 @@ console.log(client.key.privateKey, client.key.publicKey);
 ```javascript
 const client = nkn({
   identifier: 'any string',
-  privateKey: 'cd5fa29ed5b0e951f3d1bce5997458706186320f1dd89156a73d54ed752a7f37',
+  seed: '2bc5501d131696429264eb7286c44a29dd44dd66834d9471bd8b0eb875a1edb0',
 });
 ```
 
