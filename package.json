@@ -27,13 +27,13 @@
   "dependencies": {
     "cross-fetch": "^2.2.2",
     "crypto-js": "^3.1.9-1",
-    "elliptic": "^6.4.0",
     "es6-promise": "^4.2.4",
     "google-protobuf": "^3.6.1",
     "is": "^3.2.1",
     "isomorphic-ws": "^4.0.1",
     "mathjs": "^4.4.2",
     "moment": "^2.22.1",
+    "tweetnacl": "^1.0.1",
     "ws": "^5.2.0"
   },
   "devDependencies": {

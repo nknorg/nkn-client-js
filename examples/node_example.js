@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const nkn = require('../lib/nkn');
 
 // Never put private key in version control system like here!
-const privateKey = 'cd5fa29ed5b0e951f3d1bce5997458706186320f1dd89156a73d54ed752a7f37';
+const seed = '2bc5501d131696429264eb7286c44a29dd44dd66834d9471bd8b0eb875a1edb0';
 const seedRpcServerAddr = process.argv[2];
 const timeout = parseInt(process.argv[3]) || 5000;
 const logPrefix = '[' + (process.argv[4] || '') + ']';
@@ -15,7 +15,7 @@ function generateMessage() {
   let fromClient = nkn({
     // neither of these are required, as shown in toClient below
     identifier: crypto.randomBytes(8).toString('hex'),
-    privateKey: privateKey,
+    seed: seed,
     seedRpcServerAddr: seedRpcServerAddr,
   });
 
