@@ -398,7 +398,7 @@ module.exports = {
   reconnectIntervalMax: 64000,
   responseTimeout: 5,
   msgHoldingSeconds: 3600,
-  seedRpcServerAddr: 'http://testnet-node-0001.nkn.org:30003',
+  seedRpcServerAddr: 'http://devnet-seed-0001.nkn.org:30003',
 };
 
 },{}],3:[function(require,module,exports){
@@ -444,9 +444,8 @@ function Key(options = {}) {
 },{"./tools":5,"tweetnacl":620}],5:[function(require,module,exports){
 'use strict';
 
-const Is = require('is')
-const CryptoJS = require('crypto-js')
-const Mathjs = require('mathjs')
+const CryptoJS = require('crypto-js');
+const math = require('mathjs');
 
 function hexToBytes(hex) {
   for (var bytes = [], c = 0; c < hex.length; c += 2) {
@@ -465,7 +464,7 @@ function genPID(timestamp) {
   if (timestamp == undefined) {
     timestamp = new Date().getTime();
   }
-  let nonce = Mathjs.random([32], 255);
+  let nonce = math.random([32], 255);
   let pidWords = CryptoJS.SHA256(timestamp + bytesToHex(nonce));
   let pidHex = pidWords.toString(CryptoJS.enc.Hex);
   return hexToBytes(pidHex);
@@ -477,7 +476,7 @@ module.exports = {
   genPID: genPID,
 }
 
-},{"crypto-js":24,"is":57,"mathjs":61}],6:[function(require,module,exports){
+},{"crypto-js":24,"mathjs":61}],6:[function(require,module,exports){
 'use strict';
 
 const Client = require('./client');
