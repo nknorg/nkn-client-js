@@ -8,7 +8,7 @@ const nkn = require('../lib/nkn');
 const seed = '2bc5501d131696429264eb7286c44a29dd44dd66834d9471bd8b0eb875a1edb0';
 const seedRpcServerAddr = process.argv[2];
 const timeout = parseInt(process.argv[3]) || 5000;
-const logPrefix = '[' + (process.argv[4] || '') + ']';
+const logPrefix = process.argv[4] ? ('[' + process.argv[4] + '] ') : '';
 var timeSent, timeReceived;
 
 function generateMessage() {
@@ -34,28 +34,28 @@ function generateMessage() {
             // Uint8Array.from([1,2,3,4,5]),
           ).then((data) => {
             timeReceived = new Date();
-            console.log(logPrefix, 'Receive', '"' + data + '"', 'from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
+            console.log(logPrefix + 'Receive', '"' + data + '"', 'from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
           }).catch((e) => {
-            console.log(logPrefix, 'Catch: ', e);
+            console.log(logPrefix + 'Catch: ', e);
           });
           timeSent = new Date();
-          console.log(logPrefix, 'Send message from', fromClient.addr, 'to', toClient.addr);
+          console.log(logPrefix + 'Send message from', fromClient.addr, 'to', toClient.addr);
           setTimeout(function () {
             try {
               toClient.close();
               if (timeReceived === undefined) {
-                console.log(logPrefix, 'Message from', fromClient.nodeAddr, 'to', toClient.nodeAddr, 'timeout');
+                console.log(logPrefix + 'Message from', fromClient.nodeAddr, 'to', toClient.nodeAddr, 'timeout');
               }
             } catch (e) {
-              console.error(logPrefix, e);
+              console.error(logPrefix + e);
             }
           }, timeout);
         } catch (e) {
-          console.error(logPrefix, e);
+          console.error(logPrefix + e);
         }
       });
       // can also be async (src, payload, payloadType) => {}
-      toClient.on('message', (src, payload, payloadType) => {
+      toClient.on('message', (src, payload, payloadType, encrypt) => {
         timeReceived = new Date();
         var type;
         if (payloadType === nkn.PayloadType.TEXT) {
@@ -63,7 +63,7 @@ function generateMessage() {
         } else if (payloadType === nkn.PayloadType.BINARY) {
           type = 'binary';
         }
-        console.log(logPrefix, 'Receive', type, 'message', '"' + payload + '"','from', src, 'after', timeReceived - timeSent, 'ms');
+        console.log(logPrefix + 'Receive', encrypt ? 'encrypted' : 'unencrypted', type, 'message', '"' + payload + '"','from', src, 'after', timeReceived - timeSent, 'ms');
         // Send a text response
         return 'Well received!';
         // For byte array response:
@@ -73,11 +73,11 @@ function generateMessage() {
         try {
           fromClient.close();
         } catch (e) {
-          console.error(logPrefix, e);
+          console.error(logPrefix + e);
         }
       }, timeout);
     } catch (e) {
-      console.error(logPrefix, e);
+      console.error(logPrefix + e);
     }
   });
 }
