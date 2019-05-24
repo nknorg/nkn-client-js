@@ -127,13 +127,14 @@ client.publish(
 Receive data from other clients:
 
 ```javascript
-// can also be async (src, payload, payloadType) => {}
-client.on('message', (src, payload, payloadType) => {
+// can also be async (src, payload, payloadType, encrypt) => {}
+client.on('message', (src, payload, payloadType, encrypt) => {
   if (payloadType === nkn.PayloadType.TEXT) {
     console.log('Receive text message:', src, payload);
   } else if (payloadType === nkn.PayloadType.BINARY) {
     console.log('Receive binary message:', src, payload);
   }
+  console.log('Message is', encrypt ? 'encrypted' : 'unencrypted');
 });
 ```
 
@@ -141,7 +142,7 @@ If a valid data (string or Uint8Array) is returned at the end of the handler,
 the data will be sent back to sender as response:
 
 ```javascript
-client.on('message', (src, payload, payloadType) => {
+client.on('message', (src, payload, payloadType, encrypt) => {
   return 'Well received!';
   // You can also return a byte array:
   // return Uint8Array.from([1,2,3,4,5]);
