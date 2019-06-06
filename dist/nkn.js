@@ -615,7 +615,7 @@ module.exports.payloads = payloads;
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = Function('return this')();
+var global = (function(){ return this }).call(null);
 
 goog.exportSymbol('proto.client.InboundMessage', null, global);
 goog.exportSymbol('proto.client.OutboundMessage', null, global);
@@ -1094,7 +1094,7 @@ goog.object.extend(exports, proto.client);
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = Function('return this')();
+var global = (function(){ return this }).call(null);
 
 goog.exportSymbol('proto.Message', null, global);
 goog.exportSymbol('proto.Payload', null, global);
