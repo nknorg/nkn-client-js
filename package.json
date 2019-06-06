@@ -10,6 +10,18 @@
     "pb": "protoc --js_out=import_style=commonjs,binary:. lib/protocol/*.proto",
     "test": "echo \"Error: no test specified\""
   },
+  "browserify": {
+    "transform": [
+      ["browserify-replace", 
+        {
+          "replace": [{
+            "from": "var global = Function\\('return this'\\)\\(\\);",
+            "to": "var global = (function(){ return this  }).call(null);"
+          }]
+        }
+      ]
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nknorg/nkn-client-js.git"
