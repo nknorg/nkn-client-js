@@ -8,17 +8,7 @@ module.exports = function(grunt) {
         options: {
           browserifyOptions: {
             standalone: 'nkn'
-          },
-          transform: [
-            [
-              "browserify-replace",
-              {
-                replace: [
-                  { from: "var global = Function\\('return this'\\)\\(\\);", to: "var global = (function(){ return this }).call(null);" }
-                ]
-              }
-            ]
-          ]
+          }
         }
       }
     },
