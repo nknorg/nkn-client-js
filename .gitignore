@@ -62,3 +62,6 @@ typings/
 
 # jetbrains
 .idea/
+
+# other
+.DS_Store
