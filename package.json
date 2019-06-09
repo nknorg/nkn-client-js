@@ -7,7 +7,23 @@
     "lib": "lib"
   },
   "scripts": {
+    "pb": "protoc --js_out=import_style=commonjs,binary:. lib/protocol/*.proto",
     "test": "echo \"Error: no test specified\""
+  },
+  "browserify": {
+    "transform": [
+      [
+        "browserify-replace",
+        {
+          "replace": [
+            {
+              "from": "var global = Function\\('return this'\\)\\(\\);",
+              "to": "var global = (function(){ return this }).call(null);"
+            }
+          ]
+        }
+      ]
+    ]
   },
   "repository": {
     "type": "git",
@@ -25,6 +41,7 @@
   },
   "homepage": "https://nkn.org",
   "dependencies": {
+    "browserify-replace": "^1.0.0",
     "cross-fetch": "^2.2.2",
     "crypto-js": "^3.1.9-1",
     "ed2curve": "^0.2.1",
