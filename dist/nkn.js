@@ -399,7 +399,7 @@ Client.prototype.publish = function (topic, bucket, data, options = {}) {
       'getsubscribers',
       { topic: topic, bucket: bucket },
   ).then(res => {
-    sendMsg.call(this, res.result, data, encrypt, msgHoldingSeconds);
+    sendMsg.call(this, Object.keys(res.result), data, encrypt, msgHoldingSeconds);
   }).catch(err => {
     console.error('RPC call failed,', err);
     if (this.shouldReconnect) {

@@ -12,12 +12,15 @@
   },
   "browserify": {
     "transform": [
-      ["browserify-replace", 
+      [
+        "browserify-replace",
         {
-          "replace": [{
-            "from": "var global = Function\\('return this'\\)\\(\\);",
-            "to": "var global = (function(){ return this  }).call(null);"
-          }]
+          "replace": [
+            {
+              "from": "var global = Function\\('return this'\\)\\(\\);",
+              "to": "var global = (function(){ return this }).call(null);"
+            }
+          ]
         }
       ]
     ]
