@@ -333,19 +333,20 @@ function newWsAddr(addr) {
   }
 }
 
-Client.prototype.connect = function () {
-  rpcCall(
-    this.options.seedRpcServerAddr,
-    'getwsaddr',
-    { address: this.addr },
-  ).then(res => {
-    newWsAddr.call(this, res.result);
-  }).catch(err => {
+Client.prototype.connect = async function () {
+  try {
+    let res = await rpcCall(
+      this.options.seedRpcServerAddr,
+      'getwsaddr',
+      { address: this.addr },
+    );
+    newWsAddr.call(this, res);
+  } catch (err) {
     console.error('RPC call failed,', err);
     if (this.shouldReconnect) {
       this.reconnect();
     }
-  });
+  }
 };
 
 Client.prototype.reconnect = function () {
@@ -390,22 +391,17 @@ Client.prototype.send = function (dest, data, options = {}) {
   });
 };
 
-Client.prototype.publish = function (topic, bucket, data, options = {}) {
+Client.prototype.publish = async function (topic, bucket, data, options = {}) {
   let msgHoldingSeconds = getOrDefault(options.msgHoldingSeconds, this.options.msgHoldingSeconds);
   let encrypt = getOrDefault(options.encrypt, this.options.encrypt);
 
-  rpcCall(
+  let res = await rpcCall(
       this.options.seedRpcServerAddr,
       'getsubscribers',
       { topic: topic, bucket: bucket },
-  ).then(res => {
-    sendMsg.call(this, Object.keys(res.result), data, encrypt, msgHoldingSeconds);
-  }).catch(err => {
-    console.error('RPC call failed,', err);
-    if (this.shouldReconnect) {
-      this.reconnect();
-    }
-  });
+  );
+
+  return sendMsg.call(this, Object.keys(res), data, encrypt, msgHoldingSeconds);
 }
 
 Client.prototype.close = function () {
@@ -1840,8 +1836,14 @@ async function rpcCall(addr, method, params = {}) {
       params: params,
     }),
   })
+
   let data = await response.json();
-  return data;
+
+  if (data.error) {
+    throw data.error;
+  }
+
+  return data.result;
 }
 
 },{"cross-fetch/polyfill":15,"es6-promise/auto":53}],11:[function(require,module,exports){
