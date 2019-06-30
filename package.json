@@ -19,10 +19,6 @@
             {
               "from": "var global = Function\\('return this'\\)\\(\\);",
               "to": "var global = (function(){ return this }).call(null);"
-            },
-            {
-              "from": "require\\('react-native-randombytes'\\)",
-              "to": "{}"
             }
           ]
         }
