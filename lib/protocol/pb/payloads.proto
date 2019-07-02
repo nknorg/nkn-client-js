@@ -6,6 +6,12 @@ enum PayloadType {
   ACK = 2;
 }
 
+message Message {
+  bytes payload = 1;
+  bool encrypted = 2;
+  bytes nonce = 3;
+}
+
 message Payload {
   PayloadType type = 1;
   bytes pid = 2;
