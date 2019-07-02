@@ -443,7 +443,7 @@ module.exports = {
     responseTimeout: 5,
     msgHoldingSeconds: 3600,
     encrypt: true,
-    seedRpcServerAddr: 'http://devnet-seed-0001.nkn.org:30003',
+    seedRpcServerAddr: 'http://mainnet-seed-0001.nkn.org:30003',
   },
 };
 
