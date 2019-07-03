@@ -113,6 +113,22 @@ function messageFromPayload(payload, encrypt, dest) {
 }
 
 function sendMsg(dest, data, encrypt, maxHoldingSeconds, replyToPid) {
+  if (Array.isArray(dest)) {
+    if (dest.length === 0) {
+      return null;
+    }
+    if (dest.length === 1) {
+      return sendMsg.call(this, dest[0], data, encrypt, maxHoldingSeconds, replyToPid);
+    }
+    if (dest.length > 1 && encrypt) {
+      console.warn("Encryption with multicast is not supported yet, fall back to unicast and will not return msg pid")
+      for (var i = 0; i < dest.length; i++) {
+        sendMsg.call(this, dest[i], data, encrypt, maxHoldingSeconds, replyToPid);
+      }
+      return null;
+    }
+  }
+
   let payload;
   if (Is.string(data)) {
     payload = protocol.newTextPayload(data, replyToPid);
@@ -121,15 +137,6 @@ function sendMsg(dest, data, encrypt, maxHoldingSeconds, replyToPid) {
   }
 
   let pldMsg = messageFromPayload.call(this, payload, encrypt, dest);
-
-  if (Array.isArray(dest)) {
-    if (dest.length === 0) {
-      return null;
-    }
-    if (dest.length > 1 && encrypt) {
-      throw "Encryption with multicast is not supported yet."
-    }
-  }
 
   let msg = protocol.newOutboundMessage.call(this, dest, pldMsg.serializeBinary(), maxHoldingSeconds);
 
