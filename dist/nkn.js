@@ -105,6 +105,9 @@ function getPubkey(addr) {
 
 function messageFromPayload(payload, encrypt, dest) {
   if (encrypt) {
+    if (Array.isArray(dest)) {
+      throw "Encryption with multicast is not supported yet";
+    }
     let encrypted = this.key.encrypt(payload.serializeBinary(), getPubkey(dest));
     return protocol.newMessage(encrypted.message, true, encrypted.nonce);
   } else {
@@ -418,6 +421,22 @@ Client.prototype.send = function (dest, data, options = {}) {
 };
 
 Client.prototype.sendACK = function (dest, pid, encrypt) {
+  if (Array.isArray(dest)) {
+    if (dest.length === 0) {
+      return;
+    }
+    if (dest.length === 1) {
+      return sendACK.call(this, dest[0], pid, encrypt);
+    }
+    if (dest.length > 1 && encrypt) {
+      console.warn("Encryption with multicast is not supported yet, fall back to unicast for ACK")
+      for (var i = 0; i < dest.length; i++) {
+        sendACK.call(this, dest[i], pid, encrypt);
+      }
+      return;
+    }
+  }
+
   let payload = protocol.newAckPayload(pid);
   let pldMsg = messageFromPayload.call(this, payload, encrypt, dest);
   let msg = protocol.newOutboundMessage.call(this, dest, pldMsg.serializeBinary(), 0);
