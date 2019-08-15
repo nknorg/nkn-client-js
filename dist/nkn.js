@@ -426,12 +426,12 @@ Client.prototype.sendACK = function (dest, pid, encrypt) {
       return;
     }
     if (dest.length === 1) {
-      return sendACK.call(this, dest[0], pid, encrypt);
+      return this.sendACK(dest[0], pid, encrypt);
     }
     if (dest.length > 1 && encrypt) {
       console.warn("Encryption with multicast is not supported yet, fall back to unicast for ACK")
       for (var i = 0; i < dest.length; i++) {
-        sendACK.call(this, dest[i], pid, encrypt);
+        this.sendACK(dest[i], pid, encrypt);
       }
       return;
     }
