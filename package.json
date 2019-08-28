@@ -1,6 +1,6 @@
 {
   "name": "nkn-client",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "NKN Client",
   "main": "lib/nkn.js",
   "directories": {
