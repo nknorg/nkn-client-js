@@ -443,11 +443,12 @@ Client.prototype.sendACK = function (dest, pid, encrypt) {
   this.ws.send(msg.serializeBinary());
 };
 
-Client.prototype.getSubscribers = function (topic, offset = 0, limit = 1000, meta = false, txPool = false) {
+Client.prototype.getSubscribers = function (topic, options = {}) {
+  options = Object.assign({}, {offset: 0, limit: 1000, meta: false, txPool: false}, options );
   return rpcCall(
     this.options.seedRpcServerAddr,
     'getsubscribers',
-    { topic: topic, offset: offset, limit: limit, meta: meta, txPool: txPool },
+    { topic: topic, offset: options.offset, limit: options.limit, meta: options.meta, txPool: options.txPool },
   );
 }
 
@@ -470,19 +471,19 @@ Client.prototype.getSubscription = function (topic, subscriber) {
 Client.prototype.publish = async function (topic, data, options = {}) {
   let offset = 0;
   let limit = 1000;
-  let res = await this.getSubscribers(topic, offset, limit, false, options.txPool || false);
+  let res = await this.getSubscribers(topic, { offset, limit, txPool: options.txPool || false });
   let subscribers = res.subscribers;
   let subscribersInTxPool = res.subscribersInTxPool;
   while (res.subscribers && res.subscribers.length >= limit) {
     offset += limit;
-    res = await this.getSubscribers(topic, offset, limit, false, false);
+    res = await this.getSubscribers(topic, { offset, limit });
     subscribers = subscribers.concat(res.subscribers);
   }
   if (options.txPool) {
     subscribers = subscribers.concat(subscribersInTxPool);
   }
   options = Object.assign({}, options, { noReply: true });
-  return this.send(Object.keys(subscribers), data, options);
+  return this.send(subscribers, data, options);
 }
 
 Client.prototype.close = function () {
