@@ -120,7 +120,6 @@ Or publish text message to a topic (subscribe is done through [nkn-wallet-js](ht
 ```javascript
 client.publish(
   'topic',
-  0,
   'hello world!',
 );
 ```
