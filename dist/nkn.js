@@ -196,7 +196,7 @@ async function handleInboundMsg(rawMsg) {
           try {
             return Promise.resolve(f(msg.getSrc(), data, payload.getType(), pldMsg.getEncrypted(), payload.getPid()));
           } catch (e) {
-            console.error(e);
+            console.log(e);
             return Promise.resolve(null);
           }
         }));
@@ -270,7 +270,7 @@ function Client(key, identifier, options = {}) {
 
 function newWsAddr(nodeInfo) {
   if (!nodeInfo.addr) {
-    console.error('No address in node info', nodeInfo);
+    console.log('No address in node info', nodeInfo);
     if (this.shouldReconnect) {
       this.reconnect();
     }
@@ -282,7 +282,7 @@ function newWsAddr(nodeInfo) {
     ws = new WebSocket('ws://' + nodeInfo.addr);
     ws.binaryType = "arraybuffer";
   } catch (e) {
-    console.error('Create WebSocket failed,', e);
+    console.log('Create WebSocket failed,', e);
     if (this.shouldReconnect) {
       this.reconnect();
     }
@@ -314,14 +314,14 @@ function newWsAddr(nodeInfo) {
           console.warn('Unhandled msg.');
         }
       } catch (e) {
-        console.error(e);
+        console.log(e);
       }
       return;
     }
 
     let msg = JSON.parse(event.data);
     if (msg.Error !== undefined && msg.Error !== consts.errCodes.success) {
-      console.error(msg);
+      console.log(msg);
       if (msg.Error === consts.errCodes.wrongNode) {
         newWsAddr.call(this, msg.Result);
       } else if (msg.Action === 'setClient') {
@@ -358,7 +358,7 @@ function newWsAddr(nodeInfo) {
   };
 
   ws.onerror = (err) => {
-    console.error(err.message);
+    console.log(err.message);
   }
 }
 
@@ -371,7 +371,7 @@ Client.prototype.connect = async function () {
     );
     newWsAddr.call(this, res);
   } catch (err) {
-    console.error('RPC call failed,', err);
+    console.log('RPC call failed,', err);
     if (this.shouldReconnect) {
       this.reconnect();
     }
