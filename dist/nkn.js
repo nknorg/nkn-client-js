@@ -15,6 +15,10 @@ const tools = require('./crypto/tools');
 const TIMEOUT_CHECK_INTERVAL = 250;
 
 function ResponseProcessor(pid, timeout) {
+  if (pid instanceof Uint8Array) {
+    pid = tools.bytesToHex(pid);
+  }
+
   let responseHandler = null
   let timeoutHandler = null
 
@@ -71,6 +75,10 @@ function ResponseManager() {
   }
 
   this.callResponseHandler = function (pid, data) {
+    if (pid instanceof Uint8Array) {
+      pid = tools.bytesToHex(pid);
+    }
+
     if(Is.instanceof(responseProcessorList[pid], ResponseProcessor)) {
       responseProcessorList[pid].handleResponse(data)
       delete responseProcessorList[pid]
