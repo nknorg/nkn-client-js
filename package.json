@@ -1,6 +1,6 @@
 {
   "name": "nkn-client",
-  "version": "0.6.8",
+  "version": "0.7.0",
   "description": "NKN Client",
   "main": "lib/nkn.js",
   "directories": {
@@ -51,6 +51,7 @@
     "isomorphic-ws": "^4.0.1",
     "mathjs": "^4.4.2",
     "moment": "^2.22.1",
+    "pako": "^1.0.10",
     "tweetnacl": "^1.0.1",
     "ws": "^5.2.0"
   },
