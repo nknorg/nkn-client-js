@@ -10,6 +10,7 @@ message Message {
   bytes payload = 1;
   bool encrypted = 2;
   bytes nonce = 3;
+  bytes encrypted_key = 4;
 }
 
 message Payload {
