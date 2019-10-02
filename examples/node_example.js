@@ -1,27 +1,28 @@
 // Example of nkn-client-js for Node.js
-// Usage: node node_example.js
+// Usage: node node_example.js seedRpcServerAddr timeoutInMilliSeconds
 
 const crypto = require('crypto');
 const nkn = require('../lib/nkn');
 
-// Use default seed rpc server:
-const seedRpcServerAddr = undefined;
-// Use local seed rpc server:
-// const seedRpcServerAddr = 'http://127.0.0.1:30003';
-const timeout = 5000;
+// Never put private key in version control system like here!
+const seed = '2bc5501d131696429264eb7286c44a29dd44dd66834d9471bd8b0eb875a1edb0';
+const seedRpcServerAddr = process.argv[2];
+const timeout = parseInt(process.argv[3]) || 5000;
+const logPrefix = process.argv[4] ? ('[' + process.argv[4] + '] ') : '';
 var timeSent, timeReceived;
 
 function generateMessage() {
   let fromClient = nkn({
     // neither of these are required, as shown in toClient below
     identifier: crypto.randomBytes(8).toString('hex'),
-    privateKey: 'cd5fa29ed5b0e951f3d1bce5997458706186320f1dd89156a73d54ed752a7f37',
+    seed: seed,
     seedRpcServerAddr: seedRpcServerAddr,
   });
 
   fromClient.on('connect', () => {
     try {
       let toClient = nkn({
+        identifier: crypto.randomBytes(8).toString('hex'),
         seedRpcServerAddr: seedRpcServerAddr,
       });
       toClient.on('connect', () => {
@@ -33,28 +34,28 @@ function generateMessage() {
             // Uint8Array.from([1,2,3,4,5]),
           ).then((data) => {
             timeReceived = new Date();
-            console.log('Receive', '"' + data + '"', 'from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
+            console.log(logPrefix + 'Receive', '"' + data + '"', 'from', toClient.addr, 'after', timeReceived - timeSent, 'ms');
           }).catch((e) => {
-            console.log('Catch: ', e);
+            console.log(logPrefix + 'Catch: ', e);
           });
           timeSent = new Date();
-          console.log('Send message from', fromClient.addr, 'to', toClient.addr);
+          console.log(logPrefix + 'Send message from', fromClient.addr, 'to', toClient.addr);
           setTimeout(function () {
             try {
               toClient.close();
               if (timeReceived === undefined) {
-                console.log('Message from', fromClient.nodeAddr, 'to', toClient.nodeAddr, 'timeout');
+                console.log(logPrefix + 'Message from', fromClient.nodeAddr, 'to', toClient.nodeAddr, 'timeout');
               }
             } catch (e) {
-              console.error(e);
+              console.error(logPrefix + e);
             }
           }, timeout);
         } catch (e) {
-          console.error(e);
+          console.error(logPrefix + e);
         }
       });
       // can also be async (src, payload, payloadType) => {}
-      toClient.on('message', (src, payload, payloadType) => {
+      toClient.on('message', (src, payload, payloadType, encrypt) => {
         timeReceived = new Date();
         var type;
         if (payloadType === nkn.PayloadType.TEXT) {
@@ -62,7 +63,7 @@ function generateMessage() {
         } else if (payloadType === nkn.PayloadType.BINARY) {
           type = 'binary';
         }
-        console.log('Receive', type, 'message', '"' + payload + '"','from', src, 'after', timeReceived - timeSent, 'ms');
+        console.log(logPrefix + 'Receive', encrypt ? 'encrypted' : 'unencrypted', type, 'message', '"' + payload + '"','from', src, 'after', timeReceived - timeSent, 'ms');
         // Send a text response
         return 'Well received!';
         // For byte array response:
@@ -72,11 +73,11 @@ function generateMessage() {
         try {
           fromClient.close();
         } catch (e) {
-          console.error(e);
+          console.error(logPrefix + e);
         }
       }, timeout);
     } catch (e) {
-      console.error(e);
+      console.error(logPrefix + e);
     }
   });
 }
