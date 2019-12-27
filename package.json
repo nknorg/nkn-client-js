@@ -1,6 +1,6 @@
 {
   "name": "nkn-client",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "NKN Client",
   "main": "lib/nkn.js",
   "directories": {
@@ -49,8 +49,6 @@
     "google-protobuf": "^3.6.1",
     "is": "^3.2.1",
     "isomorphic-ws": "^4.0.1",
-    "mathjs": "^4.4.2",
-    "moment": "^2.22.1",
     "pako": "^1.0.10",
     "tweetnacl": "^1.0.1",
     "ws": "^5.2.0"
