@@ -6,6 +6,7 @@ module.exports = function(grunt) {
           'dist/nkn.js': [ 'lib/nkn.js' ]
         },
         options: {
+          exclude: ['crypto'],
           browserifyOptions: {
             standalone: 'nkn'
           }
