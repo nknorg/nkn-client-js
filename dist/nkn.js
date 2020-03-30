@@ -111,13 +111,13 @@ function messageFromPayload(payload, encrypt, dest) {
   return protocol.newMessage(payload.serializeBinary(), false);
 }
 
-function sendMsg(dest, data, encrypt, maxHoldingSeconds, replyToPid, msgPid) {
+async function sendMsg(dest, data, encrypt, maxHoldingSeconds, replyToPid, msgPid) {
   if (Array.isArray(dest)) {
     if (dest.length === 0) {
       return null;
     }
     if (dest.length === 1) {
-      return sendMsg.call(this, dest[0], data, encrypt, maxHoldingSeconds, replyToPid, msgPid);
+      return await sendMsg.call(this, dest[0], data, encrypt, maxHoldingSeconds, replyToPid, msgPid);
     }
   }
 
@@ -144,7 +144,7 @@ function sendMsg(dest, data, encrypt, maxHoldingSeconds, replyToPid, msgPid) {
         throw "message size is greater than " + protocol.maxClientMessageSize + " bytes";
       }
       if (totalSize + size > protocol.maxClientMessageSize) {
-        msgs.push(protocol.newOutboundMessage.call(this, destList, pldList, maxHoldingSeconds));
+        msgs.push(await protocol.newOutboundMessage.call(this, destList, pldList, maxHoldingSeconds));
         destList = [];
         pldList = [];
         totalSize = 0;
@@ -153,12 +153,12 @@ function sendMsg(dest, data, encrypt, maxHoldingSeconds, replyToPid, msgPid) {
       pldList.push(pldMsg[i]);
       totalSize += size;
     }
-    msgs.push(protocol.newOutboundMessage.call(this, destList, pldList, maxHoldingSeconds));
+    msgs.push(await protocol.newOutboundMessage.call(this, destList, pldList, maxHoldingSeconds));
   } else {
     if (pldMsg.length + dest.length + protocol.signatureLength > protocol.maxClientMessageSize) {
       throw "message size is greater than " + protocol.maxClientMessageSize + " bytes";
     }
-    msgs.push(protocol.newOutboundMessage.call(this, dest, pldMsg, maxHoldingSeconds));
+    msgs.push(await protocol.newOutboundMessage.call(this, dest, pldMsg, maxHoldingSeconds));
   }
 
   if (msgs.length > 1) {
@@ -178,7 +178,7 @@ async function handleInboundMsg(rawMsg) {
   let prevSignature = msg.getPrevSignature();
   if (prevSignature.length > 0) {
     prevSignature = tools.bytesToHex(prevSignature);
-    let receipt = protocol.newReceipt.call(this, prevSignature);
+    let receipt = await protocol.newReceipt.call(this, prevSignature);
     this.ws.send(receipt.serializeBinary());
   }
 
@@ -240,7 +240,7 @@ async function handleInboundMsg(rawMsg) {
         }
       }
       if (!responded) {
-        this.sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+        await this.sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
       }
       return true;
   }
@@ -438,11 +438,11 @@ function getOrDefault(value, defaultValue) {
   return value;
 }
 
-Client.prototype.send = function (dest, data, options = {}) {
+Client.prototype.send = async function (dest, data, options = {}) {
   let msgHoldingSeconds = getOrDefault(options.msgHoldingSeconds, this.options.msgHoldingSeconds);
   let encrypt = getOrDefault(options.encrypt, this.options.encrypt);
 
-  let pid = sendMsg.call(this, dest, data, encrypt, msgHoldingSeconds, options.replyToPid, options.pid);
+  let pid = await sendMsg.call(this, dest, data, encrypt, msgHoldingSeconds, options.replyToPid, options.pid);
   if (pid === null || options.noReply) {
     return null;
   }
@@ -450,24 +450,24 @@ Client.prototype.send = function (dest, data, options = {}) {
   let responseProcessor = new ResponseProcessor(pid, options.responseTimeout || this.options.responseTimeout)
   this.responseManager.setProcessor(responseProcessor)
 
-  return new Promise(function(resolve, reject) {
+  return await new Promise(function(resolve, reject) {
     responseProcessor.onResponse(resolve);
     responseProcessor.onTimeout(() => reject('Message timeout.'));
   });
 };
 
-Client.prototype.sendACK = function (dest, pid, encrypt) {
+Client.prototype.sendACK = async function (dest, pid, encrypt) {
   if (Array.isArray(dest)) {
     if (dest.length === 0) {
       return;
     }
     if (dest.length === 1) {
-      return this.sendACK(dest[0], pid, encrypt);
+      return await this.sendACK(dest[0], pid, encrypt);
     }
     if (dest.length > 1 && encrypt) {
       console.warn("Encrypted ACK with multicast is not supported, fallback to unicast.")
       for (var i = 0; i < dest.length; i++) {
-        this.sendACK(dest[i], pid, encrypt);
+        await this.sendACK(dest[i], pid, encrypt);
       }
       return;
     }
@@ -658,7 +658,7 @@ Key.prototype.decrypt = function (encryptedMessage, nonce, srcPubkey, options = 
   return nacl.box.open.after(encryptedMessage, nonce, sharedKey);
 }
 
-Key.prototype.sign = function (message) {
+Key.prototype.sign = async function (message) {
   let sig = nacl.sign.detached(message, this.key.secretKey);
   return tools.paddingSignature(tools.bytesToHex(sig), nacl.sign.signatureLength);
 }
@@ -888,7 +888,7 @@ function newClientMessage(messageType, message, compressionType) {
   return msg;
 }
 
-module.exports.newOutboundMessage = function (dest, payload, maxHoldingSeconds) {
+module.exports.newOutboundMessage = async function (dest, payload, maxHoldingSeconds) {
   if (!Array.isArray(dest)) {
     dest = [dest];
   }
@@ -933,7 +933,7 @@ module.exports.newOutboundMessage = function (dest, payload, maxHoldingSeconds) 
     hex = serializeSigChainMetadata(sigChain);
     digest = hash.sha256Hex(hex);
     digest = hash.sha256Hex(digest + sigChainElemSerialized);
-    signature = this.key.sign(Buffer.from(digest, 'hex'));
+    signature = await this.key.sign(Buffer.from(digest, 'hex'));
     signatures.push(tools.hexToBytes(signature));
   }
 
@@ -955,12 +955,12 @@ module.exports.newOutboundMessage = function (dest, payload, maxHoldingSeconds) 
   return newClientMessage(messages.ClientMessageType.OUTBOUND_MESSAGE, msg.serializeBinary(), compressionType);
 }
 
-module.exports.newReceipt = function (prevSignature) {
+module.exports.newReceipt = async function (prevSignature) {
   let sigChainElem = new sigchain.SigChainElem();
   let sigChainElemSerialized = serializeSigChainElem(sigChainElem);
   let digest = hash.sha256Hex(prevSignature);
   digest = hash.sha256Hex(digest + sigChainElemSerialized);
-  let signature = this.key.sign(Buffer.from(digest, 'hex'));
+  let signature = await this.key.sign(Buffer.from(digest, 'hex'));
   let msg = new messages.Receipt();
   msg.setPrevSignature(tools.hexToBytes(prevSignature));
   msg.setSignature(tools.hexToBytes(signature));
