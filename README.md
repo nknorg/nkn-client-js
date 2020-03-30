@@ -1,3 +1,5 @@
+**Note: This repo is deprecated in favor of [nkn-sdk-js](https://github.com/nknorg/nkn-sdk-js).**
+
 [![CircleCI Status](https://circleci.com/gh/nknorg/nkn-client-js.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/nknorg/nkn-client-js)
 
 # nkn-client-js
@@ -13,9 +15,6 @@ Note: This is a **client** version of the NKN protocol, which can send and
 receive data but **not** relay data (mining). For **node** implementation which
 can mine NKN token by relaying data, please refer to
 [nkn](https://github.com/nknorg/nkn/).
-
-**Note: This repository is in the early development stage and may not have all
-functions working properly. It should be used only for testing now.**
 
 ## Usage
 
@@ -54,7 +53,7 @@ Get client key pair:
 console.log(client.key.seed, client.key.privateKey, client.key.publicKey);
 ```
 
-Create a client using an existing seed:
+Create a client using an existing secret seed:
 
 ```javascript
 const client = nkn({
@@ -63,9 +62,12 @@ const client = nkn({
 });
 ```
 
+Secret seed should be kept **SECRET**! Never put it in version control system
+like here.
+
 By default the client will use bootstrap RPC server (for getting node address)
-provided by us. Any NKN full node can serve as a bootstrap RPC server. To create
-a client using customized bootstrap RPC server:
+provided by NKN. Any NKN full node can serve as a bootstrap RPC server. To
+create a client using customized bootstrap RPC server:
 
 ```javascript
 const client = nkn({
@@ -73,9 +75,6 @@ const client = nkn({
   seedRpcServerAddr: 'https://ip:port',
 });
 ```
-
-Private key should be kept **SECRET**! Never put it in version control system
-like here.
 
 Get client identifier:
 
